@@ -34,33 +34,33 @@ namespace unvell.ReoGrid
 {
 	partial class Worksheet
 	{
-		#region Filter
+        #region Filter
 
-		///// <summary>
-		///// Create filter on specified column.
-		///// </summary>
-		///// <param name="column">Column code that locates a column to create filter.</param>
-		///// <param name="titleRows">Indicates how many title rows exist at the top of worksheet,
-		///// title rows will not be included in filter range.</param>
-		///// <returns>Instance of column filter.</returns>
-		//public AutoColumnFilter CreateColumnFilter(string column, int titleRows = 0,
-		//	AutoColumnFilterUI columnFilterUI = AutoColumnFilterUI.DropdownButtonAndPane)
-		//{
-		//	return CreateColumnFilter(column, column, titleRows, columnFilterUI);
-		//}
+        ///// <summary>
+        ///// Create filter on specified column.
+        ///// </summary>
+        ///// <param name="column">Column code that locates a column to create filter.</param>
+        ///// <param name="titleRows">Indicates how many title rows exist at the top of worksheet,
+        ///// title rows will not be included in filter range.</param>
+        ///// <returns>Instance of column filter.</returns>
+        //public AutoColumnFilter CreateColumnFilter(string column, int titleRows = 0,
+        //	AutoColumnFilterUI columnFilterUI = AutoColumnFilterUI.DropdownButtonAndPane)
+        //{
+        //	return CreateColumnFilter(column, column, titleRows, columnFilterUI);
+        //}
 
-		/// <summary>
-		/// Create column filter.
-		/// </summary>
-		/// <param name="startColumn">First column specified by an address to create filter.</param>
-		/// <param name="endColumn">Last column specified by an address to the filter.</param>
-		/// <param name="titleRows">Indicates that how many title rows exist at the top of spreadsheet,
-		/// title rows will not be included in filter apply range.</param>
-		/// <param name="columnFilterUI">Indicates whether allow to create graphics user interface (GUI), 
-		/// by default the dropdown-button on the column and candidates dropdown-panel will be created.
-		/// Set this argument as NoGUI to create filter without GUI.</param>
-		/// <returns>Instance of column filter.</returns>
-		public AutoColumnFilter CreateColumnFilter(string startColumn, string endColumn, int titleRows = 0,
+        /// <summary>
+        /// Create column filter.
+        /// </summary>
+        /// <param name="startColumn">First column specified by an address to create filter.</param>
+        /// <param name="endColumn">Last column specified by an address to the filter.</param>
+        /// <param name="titleRows">Indicates that how many title rows exist at the top of spreadsheet,
+        /// title rows will not be included in filter apply range.</param>
+        /// <param name="columnFilterUI">Indicates whether allow to create graphics user interface (GUI), 
+        /// by default the dropdown-button on the column and candidates dropdown-panel will be created.
+        /// Set this argument as NoGUI to create filter without GUI.</param>
+        /// <returns>Instance of column filter.</returns>
+        public AutoColumnFilter CreateColumnFilter(string startColumn, string endColumn, int titleRows = 0,
 			AutoColumnFilterUI columnFilterUI = AutoColumnFilterUI.DropdownButtonAndPanel)
 		{
 			int startIndex = RGUtility.GetNumberOfChar(startColumn);
@@ -181,19 +181,25 @@ namespace unvell.ReoGrid
 		/// </summary>
 		public event EventHandler RowsFiltered;
 
-		#endregion // Filter
+        #endregion // Filter
 
-		#region Sort
+        #region Sort
 
-		/// <summary>
-		/// Sort data on specified column.
-		/// </summary>
-		/// <param name="columnAddress">Base column specified by an address to sort data.</param>
-		/// <param name="order">Order of data sort.</param>
-		/// <param name="cellDataComparer">Custom cell data comparer, compares two cells and returns an integer. 
-		/// Set this value to null to use default built-in comparer.</param>
-		/// <returns>Data changed range</returns>
-		public RangePosition SortColumn(string columnAddress, SortOrder order = SortOrder.Ascending,
+        /// <summary>
+        /// a collection of row indexes that is populated after SortColumn is called
+        /// this can then be used to sort the row headers
+        /// </summary>
+        public List<int[]> SwappedRowIndexes { get; private set; }
+
+        /// <summary>
+        /// Sort data on specified column.
+        /// </summary>
+        /// <param name="columnAddress">Base column specified by an address to sort data.</param>
+        /// <param name="order">Order of data sort.</param>
+        /// <param name="cellDataComparer">Custom cell data comparer, compares two cells and returns an integer. 
+        /// Set this value to null to use default built-in comparer.</param>
+        /// <returns>Data changed range</returns>
+        public RangePosition SortColumn(string columnAddress, SortOrder order = SortOrder.Ascending,
 			CellElementFlag moveElementFlag = CellElementFlag.Data,
 			Func<int, int, object, object, int> cellDataComparer = null)
 		{
@@ -311,7 +317,10 @@ namespace unvell.ReoGrid
 
 			try
 			{
-				this.controlAdapter.ChangeCursor(CursorStyle.Busy);
+				// initialise or remove any old entries
+				SwappedRowIndexes = new List<int[]>();
+
+                this.controlAdapter.ChangeCursor(CursorStyle.Busy);
 
 				if (!this.CheckQuickSortRange(columnIndex, range.Row, range.EndRow, range.Col, range.EndCol, order, ref affectRange))
 				{
@@ -334,7 +343,7 @@ namespace unvell.ReoGrid
 			finally
 			{
 				// resume to fire events
-				this.ResumeDataChangedEvents();
+                this.ResumeDataChangedEvents();
 			}
 
 			this.RequestInvalidate();
@@ -490,10 +499,13 @@ namespace unvell.ReoGrid
 
 					for (int col = startColumn; col <= endColumn; col++)
 					{
-						var v = GetCellData(top, col);
-						SetCellData(top, col, GetCellData(bottom, col));
-						SetCellData(bottom, col, v);
-					}
+                        var v = GetCellData(top, col);
+                        SetCellData(top, col, GetCellData(bottom, col));
+                        SetCellData(bottom, col, v);			
+                    }
+
+					// add the swapped row indexes to the collection that can be used by the worksheet
+					SwappedRowIndexes.Add(new[] { top, bottom });
 
 					if (affectRange.IsEmpty)
 					{
@@ -517,13 +529,12 @@ namespace unvell.ReoGrid
 				start = bottom + 1;
 			}
 		}
-
-		/// <summary>
-		/// Event raised when rows sorted on this worksheet.
-		/// </summary>
-		public event EventHandler<Events.RangeEventArgs> RowsSorted;
+		
+        /// <summary>
+        /// Event raised when rows sorted on this worksheet.
+        /// </summary>
+        public event EventHandler<Events.RangeEventArgs> RowsSorted;
 		#endregion // Sort
-
 	}
 
 	/// <summary>

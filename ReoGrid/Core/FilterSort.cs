@@ -442,13 +442,16 @@ namespace unvell.ReoGrid
 		private Func<int, int, object, object, int> cellDataComparer;
 
 		private int CompareCell(int row, int col, object @base)
-		{
-			if (@base == null) return 0;
-
+		{			
 			var data = this.GetCellData(row, col) as IComparable;
-			if (data == null) return 0;
 
-			if (data.GetType() == @base.GetType())
+            if (@base == null && data == null) { return 0; }
+
+            // if one of the cells is null sort it at the top
+            if (data == null) { return -1; }
+            if (@base == null) { return 1; }
+
+            if (data.GetType() == @base.GetType())
 			{
 				return data.CompareTo(@base);
 			}

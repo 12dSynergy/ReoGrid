@@ -502,10 +502,20 @@ namespace unvell.ReoGrid
 
 					for (int col = startColumn; col <= endColumn; col++)
 					{
-                        var v = GetCellData(top, col);
-                        SetCellData(top, col, GetCellData(bottom, col));
-                        SetCellData(bottom, col, v);			
-                    }
+						// swap cell bodies
+						var top_cell_body = cells[top, col].Body;
+						var bottom_cell_body = cells[bottom, col].Body;
+						if (top_cell_body != null && bottom_cell_body != null)
+						{
+							SetCellBody(cells[top, col], bottom_cell_body);
+							SetCellBody(cells[bottom, col], top_cell_body);
+						}
+
+						// still need to swap data
+						var v = GetCellData(top, col);
+						SetCellData(top, col, GetCellData(bottom, col));
+						SetCellData(bottom, col, v);
+					}
 
 					// add the swapped row indexes to the collection that can be used by the worksheet
 					SwappedRowIndexes.Add(new[] { top, bottom });

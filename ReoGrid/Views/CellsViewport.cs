@@ -1183,7 +1183,11 @@ namespace unvell.ReoGrid.Views
 
 								if (cell != null && cell.body != null)
 								{
-									if (cell.body.OnMouseDown(evtArg))
+                                    // Fix for SYN-21003: Set focus to this CellsViewport before OnMouseDown is called. This ensures that
+                                    // the correct viewport is used for position calculations. This allows us to calculate the relative
+                                    // position of the dropdown cell correctly in OnMouseDown
+                                    this.SetFocus();
+                                    if (cell.body.OnMouseDown(evtArg))
 									{
 										isProcessed = true;
 
@@ -1197,6 +1201,7 @@ namespace unvell.ReoGrid.Views
 
 										if (cell.body.AutoCaptureMouse() || evtArg.Capture)
 										{
+											// Set focus again in case the viewport has been changed since the other SetFocus call above
 											this.SetFocus();
 											sheet.mouseCapturedCell = cell;
 											sheet.operationStatus = OperationStatus.CellBodyCapture;
